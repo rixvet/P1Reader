@@ -45,8 +45,8 @@ def store_telegram(telegram):
   
 
 
-def get_telegram():
-  with serial.Serial('/dev/ttyUSB0', 115200, bytesize=serial.SEVENBITS, parity=serial.PARITY_EVEN) as ser:
+def get_telegram(port):
+  with serial.Serial(port, 115200, bytesize=serial.SEVENBITS, parity=serial.PARITY_EVEN) as ser:
     telegram = ''
     while True:
       s = ser.readline()
@@ -66,4 +66,4 @@ def get_telegram():
 
    
 if __name__ == '__main__':
-  get_telegram()
+  get_telegram(sys.argv[1])

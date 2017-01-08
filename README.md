@@ -1,3 +1,14 @@
+# Requirements
+```
+apt-get install python-serial
+```
+
+# Usage
+My FTDI-USB TTL is exposed at `/dev/ttyUSB0`, so this will be:
+`python landis_gys_e350.py /dev/ttyUSB0`
+
+Output data is (hard-coded) stored at `/home/pi/P1_DATA_%Y_%m.csv`.
+
 # P1Reader
 My Utility Infrastructure provider [Liander](http://liander.nl) provided me
 with a Smart Meter for gas and electricity, namely a Landis + Gys E350. The
