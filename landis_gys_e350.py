@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 import csv
 import glob
+import re
 import serial
 import sys
 import time
+import argparse
 
+from collections import defaultdict
 
 # Inspired by https://github.com/jantenhove/P1-Meter-ESP8266 &
 # http://stackoverflow.com/a/23695315/236610
@@ -61,9 +64,54 @@ def get_telegram(port):
         else:
           store_telegram(telegram)
         telegram = ''
+
+
+def parse_telegram(csvfile, bucket_size):
+  prev_gas_m3 = None
+  bucket = defaultdict(float)
+
+  with open(csvfile, "r") as fh:
+    reader = csv.reader(fh, delimiter=';', lineterminator='\n')
+    for row in reader:
+        time_str, telegram_str = row
+        time = int(time_str)
+        telegram = telegram_str.decode('base64')
+        for line in telegram.split():
+            if line.startswith('0-1:24.2.1'):
+                m = re.match('^[\d\-\:\.]+\(\d+W\)\((\d+\.\d+)\*m3\)$', line)
+                gas_m3=float(m.group(1))
+
+        if prev_gas_m3:
+            # If delta is more than X days, assume broken sensor and devide
+            # amount equally over all buckets
+            delta_m3 = gas_m3 - prev_gas_m3
+            if (time - prev_time) > (3600 * 24 * 2):
+                bk = range(prev_time, time, bucket_size)
+                for k in bk:
+                    bucket[k - (k % bucket_size)] += (delta_m3 / len(bk))
+            else:
+                bucket[time - (time % bucket_size)] += delta_m3
+        # Store previous values
+        prev_gas_m3 = gas_m3
+        prev_time = time
+
+    # Display values
+    for k,v in sorted(bucket.items()):
+        print k,v
+
 	
 
 
    
 if __name__ == '__main__':
-  get_telegram(sys.argv[1])
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--bucket_size', type=int, default=3600)
+  parser.add_argument('action')
+  parser.add_argument('files', nargs='+')
+  args = parser.parse_args()
+
+  if args.action == 'parse':
+    for fn in args.files:
+        parse_telegram(fn, args.bucket_size)
+  elif args.action == 'get':
+    get_telegram(sys.files[0])
